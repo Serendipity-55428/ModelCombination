@@ -135,10 +135,12 @@ class ModelCl:
         return model
     def graph(self):
         ''''''
+        tensorboard = tf.keras.callbacks.TensorBoard(log_dir='logs/model_cl')
         model = self._model_finally()
         optimizer = tf.keras.optimizers.SGD(lr=1e-2)
         model.compile(optimizer=optimizer, loss=['categorical_crossentropy']*2, loss_weights=[0.3, 0.7],
                       metrics=['accuracy'])
+        model.fit(callbacks=[tensorboard]) #可视化
         # print(model.metrics_names)
         train_data, test_data = spliting(dataset, 6000)
         flag = 0

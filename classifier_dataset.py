@@ -40,7 +40,7 @@ def SaveFile(data, savepickle_p):
             with open(savepickle_p, 'wb') as file:
                 pickle.dump(data, file)
 
-def classifier_25(n):
+def classifier_125(n):
     '''
     细化最优半径区间
     :param n: 区间个数
@@ -135,23 +135,23 @@ def fft_transformer(dataset, N):
 
 
 if __name__ == '__main__':
-    space = classifier_25(26)
+    space = classifier_125(126)
     # print(space)
     p = '/home/xiaosong/pny相关数据/data_pny/PNY_all.pickle'
     dataset = LoadFile(p)
     # print(dataset.shape)
     # print(Counter(dataset[:, -1]))
-    dataset_cl25 = dataset_cl(dataset=dataset, space=space)
-    print(dataset_cl25.shape)
+    dataset_cl125 = dataset_cl(dataset=dataset, space=space)
+    print(dataset_cl125.shape)
     # checkclassifier(dataset_cl25[:, -1])
-    dataset_cl25_2000 = dataset_junheng(dataset=dataset_cl25, number=2000)
+    dataset_cl25_ = dataset_junheng(dataset=dataset_cl125, number=2000)
     # checkclassifier(dataset_cl25_2000[:, -1])
     # print(dataset_cl25_2000.shape)
-    dataset_4feature, dataset_dense, label = dataset_cl25_2000[:, :4], dataset_cl25_2000[:, 4:-1], \
-                                             dataset_cl25_2000[:, -1][:, np.newaxis]
+    dataset_4feature, dataset_dense, label = dataset_cl25_[:, :4], dataset_cl25_[:, 4:-1], \
+                                             dataset_cl25_[:, -1][:, np.newaxis]
     dataset_fft = fft_transformer(dataset_dense, 100)
     dataset = np.hstack((dataset_4feature, dataset_fft, label))
     dataset_guiyi = guiyi(dataset)
     print(dataset_guiyi.shape)
-    SaveFile(data=dataset_guiyi, savepickle_p='/home/xiaosong/桌面/pny_cl25.pickle')
+    SaveFile(data=dataset_guiyi, savepickle_p='/home/xiaosong/桌面/pny_cl125.pickle')
     # print(np.max(dataset_guiyi, axis=0))

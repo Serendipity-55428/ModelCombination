@@ -10,6 +10,7 @@
 import tensorflow as tf
 import numpy as np
 import pandas as pd
+from classifier_dataset import LoadFile
 
 def input(dataset, batch_size):
     '''
@@ -56,8 +57,9 @@ def onehot(dataset, class_number):
 class ModelCl:
     ''''''
     @staticmethod
-    def concat(inputs):
-        return tf.concat(values=inputs, axis=1)
+    def concat(inputs, axis):
+        fun = tf.keras.layers.Lambda(function=tf.concat)
+        return fun(inputs=inputs, axis=axis)
     @staticmethod
     def Inception_resnet_v1(input, last_filter):
         '''
@@ -81,38 +83,39 @@ class ModelCl:
         layer_line3 = tf.keras.layers.Conv2D(filters=32, kernel_size=[3, 3], padding='same', activation=tf.nn.relu,
                                              kernel_initializer=tf.keras.initializers.TruncatedNormal())(input)
 
-        layer_concat = ModelCl.concat([layer_line1, layer_line2, layer_line3])
+        layer_concat = tf.keras.layers.Concatenate(axis=3)(inputs=[layer_line1, layer_line2, layer_line3])
         layer_concat = tf.keras.layers.Conv2D(filters=last_filter, kernel_size=[1, 1], padding='same', activation=tf.nn.relu,
                                               kernel_initializer=tf.keras.initializers.TruncatedNormal())(layer_concat)
-        return ModelCl.concat([layer_concat, input])
+        layer_concat = tf.keras.layers.Conv2D(filters=input.get_shape().as_list()[-1], kernel_size=[1, 1], padding='same', activation=tf.nn.relu,
+                                           kernel_initializer=tf.keras.initializers.TruncatedNormal())(layer_concat)
+        return tf.keras.layers.Add()([input, layer_concat])
     def __init__(self, *args):
         ''''''
-        self.__feature4 = args[0]
-        self.__avgdens = args[1]
-        self.__avgdensFFT = args[2]
-    def _net1_pre(self, input1, input2):
+        self.__dataset = args[0]
+        self.__savepath = args[-1]
+    def _net1_pre(self, input):
         ''''''
-        layer = tf.keras.layers.LSTM(units=128, dropout=0.8, return_sequences=True, name='lstm1')(input2)
+        layer = tf.keras.layers.LSTM(units=128, dropout=0.8, return_sequences=True, name='lstm1')(input)
         layer = tf.keras.layers.LSTM(units=128, dropout=0.8, return_sequences=False, name='lstm2')(layer)
         layer = tf.keras.layers.Flatten(name='net1_flatten')(layer)
-        layer = tf.keras.layers.Lambda(ModelCl.concat, name='concat1')(inputs=[input1, layer])
         return layer
     def _densenet(self, layer_pre, *units):
         ''''''
         stack_layers = [layer_pre]
         for i in range(len(units)):
-            layers_concat = ModelCl.concat(inputs=stack_layers)
+            if len(stack_layers) > 1:
+                layers_concat = tf.keras.layers.Concatenate(axis=1)(inputs=stack_layers)
+            else:
+                layers_concat = layer_pre
             layer = tf.keras.layers.Dense(units=units[i], activation=tf.nn.relu if i != len(units)-1 else tf.nn.softmax,
                                           use_bias=True,
                                           kernel_initializer=tf.keras.initializers.TruncatedNormal(),
-                                          bias_initializer=tf.keras.initializers.TruncatedNormal(),
-                                          name='fc%s' % (i+1))(layers_concat)
+                                          bias_initializer=tf.keras.initializers.TruncatedNormal())(layers_concat)
             stack_layers.append(layer)
         return stack_layers[-1]
-    def _net2_pre(self, input1, input2, input3):
+    def _net2_pre(self, input):
         ''''''
-        layer = ModelCl.concat([input1, input2, input3])
-        layer = ModelCl.Inception_resnet_v1(input=layer, last_filter=64)
+        layer = ModelCl.Inception_resnet_v1(input=input, last_filter=64)
         layer = ModelCl.Inception_resnet_v1(input=layer, last_filter=128)
         layer = ModelCl.Inception_resnet_v1(input=layer, last_filter=256)
         layer = ModelCl.Inception_resnet_v1(input=layer, last_filter=256)
@@ -125,12 +128,15 @@ class ModelCl:
             input3 = tf.keras.Input(shape=(100,), name='avgdensFFT')
         with tf.name_scope('cl1'):
             input2_reshape = tf.keras.layers.Reshape(target_shape=[4, 5])(input2)
-            layer_lstm = self._net1_pre(input1=input1, input2=input2_reshape)
-            output1 = self._densenet(layer_lstm, 100, 100, 100, 250)
+            layer_lstm = self._net1_pre(input=input2_reshape)
+            output1 = tf.keras.layers.Concatenate(axis=1)(inputs=[input1, layer_lstm])
+            output1 = self._densenet(output1, 100, 100, 100, 250)
         with tf.name_scope('cl2'):
             input3_reshape = tf.keras.layers.Reshape(target_shape=[10, 10, 1])(input3)
-            layer_resnet = self._net2_pre(input1=input1, input2=layer_lstm, input3=input3_reshape)
-            output2 = self._densenet(layer_resnet, 100, 100, 100, 250)
+            layer_resnet = self._net2_pre(input=input3_reshape)
+            layer_resnet_reshape = tf.keras.layers.Flatten()(layer_resnet)
+            output2 = tf.keras.layers.Concatenate(axis=1)(inputs=[input1, layer_lstm, layer_resnet_reshape])
+            output2 = self._densenet(output2, 100, 100, 100, 250)
         model = tf.keras.Model(inputs=[input1, input2, input3], outputs=[output1, output2])
         return model
     def graph(self):
@@ -140,26 +146,31 @@ class ModelCl:
         optimizer = tf.keras.optimizers.SGD(lr=1e-2)
         model.compile(optimizer=optimizer, loss=['categorical_crossentropy']*2, loss_weights=[0.3, 0.7],
                       metrics=['accuracy'])
-        model.fit(callbacks=[tensorboard]) #可视化
+        print(model.metrics_names)
+        model.fit(callbacks=[tensorboard]) #可视化, 参数必须要输入完整
         # print(model.metrics_names)
-        train_data, test_data = spliting(dataset, 6000)
+        train_data, test_data = spliting(self.__dataset, 6000)
         flag = 0
         for epoch in range(20000):
             for train_data_batch in input(dataset=train_data, batch_size=500):
-                loss_train, _ = model.train_on_batch(x=[train_data_batch[:, :4], train_data_batch[:, 4:-25]],
+                loss_train, _, _, _, _ = model.train_on_batch(x=[train_data_batch[:, :4], train_data_batch[:, 4:-25]],
                                                           y=train_data_batch[:, -25:])
                 if epoch % 100 == 0 and flag == 0:
                     print('第%s轮后训练集损失函数值为: %s' % (epoch, loss_train))
                     flag = 1
             if epoch % 100 == 0:
-                _, acc = model.evaluate(x=[test_data[:, :4], test_data[:, 4:-25]], y=test_data[:, -25:], verbose=0)
-                print('测试集准确率为: %s' % acc)
+                _, _, _, _, acc2 = model.evaluate(x=[test_data[:, :4], test_data[:, 4:-25]], y=test_data[:, -25:], verbose=0)
+                print('测试集准确率为: %s' % acc2)
             flag = 0
-        # print(model_cl25.get_config())
-        # model.save(filepath=save_path)
+        # model.save(filepath=self.__savepath)
 
 if __name__ == '__main__':
-    pass
+    path = '/home/xiaosong/桌面/pny_cl125.pickle'
+    save_path = '/home/xiaosong/桌面/pny_re_cl/graph_cl.h5'
+    dataset = LoadFile(path)
+    # print(dataset.shape)
+    model_cl = ModelCl(dataset, save_path)
+    model_cl.graph()
 
 
 

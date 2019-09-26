@@ -12,7 +12,7 @@ import pandas as pd
 import pickle
 import os
 from collections import Counter
-from classifier_dataset import LoadFile, SaveFile, classifier_25, checkclassifier, guiyi, fft_transformer
+from classifier_dataset import LoadFile, SaveFile, classifier_125, checkclassifier, guiyi, fft_transformer
 
 def dataset_regression_guiyi(dataset, space, number):
     '''
@@ -54,7 +54,7 @@ def dataset_regression_guiyi(dataset, space, number):
     return dataset_return
 
 if __name__ == '__main__':
-    space = classifier_25(26)
+    space = classifier_125(126)
     # print(space)
     p = '/home/xiaosong/pny相关数据/data_pny/PNY_all.pickle'
     dataset = LoadFile(p)

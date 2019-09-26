@@ -57,10 +57,6 @@ def onehot(dataset, class_number):
 class ModelCl:
     ''''''
     @staticmethod
-    def concat(inputs, axis):
-        fun = tf.keras.layers.Lambda(function=tf.concat)
-        return fun(inputs=inputs, axis=axis)
-    @staticmethod
     def Inception_resnet_v1(input, last_filter):
         '''
         带有残差结构的inception_v1结构

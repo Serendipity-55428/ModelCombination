@@ -108,6 +108,7 @@ class ModelCl:
                                           kernel_initializer=tf.keras.initializers.TruncatedNormal(),
                                           bias_initializer=tf.keras.initializers.TruncatedNormal())(layers_concat)
             stack_layers.append(layer)
+        # print(stack_layers[-1].shape)
         return stack_layers[-1]
     def _net2_pre(self, input):
         ''''''
@@ -126,36 +127,51 @@ class ModelCl:
             input2_reshape = tf.keras.layers.Reshape(target_shape=[4, 5])(input2)
             layer_lstm = self._net1_pre(input=input2_reshape)
             output1 = tf.keras.layers.Concatenate(axis=1)(inputs=[input1, layer_lstm])
-            output1 = self._densenet(output1, 100, 100, 100, 250)
+            output1 = self._densenet(output1, 100, 100, 100, 125)
         with tf.name_scope('cl2'):
             input3_reshape = tf.keras.layers.Reshape(target_shape=[10, 10, 1])(input3)
             layer_resnet = self._net2_pre(input=input3_reshape)
             layer_resnet_reshape = tf.keras.layers.Flatten()(layer_resnet)
             output2 = tf.keras.layers.Concatenate(axis=1)(inputs=[input1, layer_lstm, layer_resnet_reshape])
-            output2 = self._densenet(output2, 100, 100, 100, 250)
+            output2 = self._densenet(output2, 100, 100, 100, 125)
         model = tf.keras.Model(inputs=[input1, input2, input3], outputs=[output1, output2])
         return model
     def graph(self):
         ''''''
-        tensorboard = tf.keras.callbacks.TensorBoard(log_dir='logs/model_cl')
+        # tensorboard = tf.keras.callbacks.TensorBoard(log_dir='logs/model_cl')
         model = self._model_finally()
         optimizer = tf.keras.optimizers.SGD(lr=1e-2)
         model.compile(optimizer=optimizer, loss=['categorical_crossentropy']*2, loss_weights=[0.3, 0.7],
                       metrics=['accuracy'])
-        print(model.metrics_names)
-        model.fit(callbacks=[tensorboard]) #可视化, 参数必须要输入完整
+        print('model.metrics_names: ', model.metrics_names)
+        # model.fit(callbacks=[tensorboard]) #可视化, 参数必须要输入完整
         # print(model.metrics_names)
-        train_data, test_data = spliting(self.__dataset, 6000)
+        dataset = onehot(dataset=self.__dataset, class_number=125)
+        rng = np.random.RandomState(0)
+        rng.shuffle(dataset)
+        train_data, test_data = spliting(dataset, 5600)
+        print('训练集/测试集比例为: ', train_data.shape, test_data.shape)
         flag = 0
         for epoch in range(20000):
+            print('training!')
             for train_data_batch in input(dataset=train_data, batch_size=500):
-                loss_train, _, _, _, _ = model.train_on_batch(x=[train_data_batch[:, :4], train_data_batch[:, 4:-25]],
-                                                          y=train_data_batch[:, -25:])
+                # 此处返回值分别为: loss_all, loss_1, loss_2, acc_1, acc_2, 只需要取loss_all
+                loss_train, _, _, _, _ = model.train_on_batch(x=[train_data_batch[:, :4],
+                                                                 train_data_batch[:, 4:24],
+                                                                 train_data_batch[:, 24:-125]],
+                                                              y=[train_data_batch[:, -125:],
+                                                                 train_data_batch[:, -125:]])
                 if epoch % 100 == 0 and flag == 0:
                     print('第%s轮后训练集损失函数值为: %s' % (epoch, loss_train))
                     flag = 1
             if epoch % 100 == 0:
-                _, _, _, _, acc2 = model.evaluate(x=[test_data[:, :4], test_data[:, 4:-25]], y=test_data[:, -25:], verbose=0)
+                #此处返回值分别为: loss_all, loss_1, loss_2, acc_1, acc_2, 只需要取acc_2
+                _, _, _, _, acc2 = model.evaluate(x=[test_data[:, :4],
+                                                     test_data[:, 4:24],
+                                                     test_data[:, 24:-125]],
+                                                  y=[test_data[:, -125:],
+                                                     test_data[:, -125:]],
+                                                  verbose=0)
                 print('测试集准确率为: %s' % acc2)
             flag = 0
         # model.save(filepath=self.__savepath)

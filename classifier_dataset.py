@@ -93,7 +93,7 @@ def dataset_junheng(dataset, number):
     '''
     dataset_pd = pd.DataFrame(data=dataset, columns=[str(i) for i in range(25)])
     dataset_return = np.array([0])
-    for i in range(25):
+    for i in range(125):
         sub_dataset = dataset_pd.loc[dataset_pd['24'] == i]
         if sub_dataset.values.shape[0] > number:
             dataset_return = sub_dataset.values[:number, :] if dataset_return.any() == 0 else \
@@ -103,12 +103,12 @@ def dataset_junheng(dataset, number):
             num = number // sub_dataset.values.shape[0]
             if judge != 0:
                 num += 1
-            dataset_sub2000 = sub_dataset.values
+            dataset_sub_number = sub_dataset.values
             for i in range(num-1):
-                dataset_sub2000 = np.vstack((dataset_sub2000, sub_dataset.values))
-            dataset_sub2000 = dataset_sub2000[:number, :]
-            dataset_return = dataset_sub2000 if dataset_return.any() == 0 else \
-                np.vstack((dataset_return, dataset_sub2000))
+                dataset_sub_number = np.vstack((dataset_sub_number, sub_dataset.values))
+            dataset_sub_number = dataset_sub_number[:number, :]
+            dataset_return = dataset_sub_number if dataset_return.any() == 0 else \
+                np.vstack((dataset_return, dataset_sub_number))
     return dataset_return
 
 def guiyi(dataset):
@@ -142,16 +142,16 @@ if __name__ == '__main__':
     # print(dataset.shape)
     # print(Counter(dataset[:, -1]))
     dataset_cl125 = dataset_cl(dataset=dataset, space=space)
-    print(dataset_cl125.shape)
-    # checkclassifier(dataset_cl25[:, -1])
-    dataset_cl25_ = dataset_junheng(dataset=dataset_cl125, number=2000)
-    # checkclassifier(dataset_cl25_2000[:, -1])
-    # print(dataset_cl25_2000.shape)
-    dataset_4feature, dataset_dense, label = dataset_cl25_[:, :4], dataset_cl25_[:, 4:-1], \
-                                             dataset_cl25_[:, -1][:, np.newaxis]
+    # print(dataset_cl125.shape)
+    # checkclassifier(dataset_cl125[:, -1])
+    dataset_cl125_ = dataset_junheng(dataset=dataset_cl125, number=1000)
+    # checkclassifier(dataset_cl125_[:, -1])
+    # print(dataset_cl125_.shape)
+    dataset_4feature, dataset_dense, label = dataset_cl125_[:, :4], dataset_cl125_[:, 4:-1], \
+                                             dataset_cl125_[:, -1][:, np.newaxis]
     dataset_fft = fft_transformer(dataset_dense, 100)
-    dataset = np.hstack((dataset_4feature, dataset_fft, label))
+    dataset = np.hstack((dataset_cl125_[:, :-1], dataset_fft, label))
     dataset_guiyi = guiyi(dataset)
     print(dataset_guiyi.shape)
     SaveFile(data=dataset_guiyi, savepickle_p='/home/xiaosong/桌面/pny_cl125.pickle')
-    # print(np.max(dataset_guiyi, axis=0))
+    print(np.max(dataset_guiyi, axis=0))

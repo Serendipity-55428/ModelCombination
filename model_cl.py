@@ -120,11 +120,10 @@ class ModelCl:
     def _model_finally(self):
         ''''''
         with tf.name_scope('input'):
-            input1 = tf.keras.Input(shape=(4,), name='feature4')
-            input2 = tf.keras.Input(shape=(20,), name='avgdens')
+            input1 = tf.keras.Input(shape=(24,), name='feature4_avgdens')
             input3 = tf.keras.Input(shape=(100,), name='avgdensFFT')
         with tf.name_scope('cl1'):
-            input2_reshape = tf.keras.layers.Reshape(target_shape=[4, 5])(input2)
+            input2_reshape = tf.keras.layers.Reshape(target_shape=[10, 10])(input3)
             layer_lstm = self._net1_pre(input=input2_reshape)
             output1 = tf.keras.layers.Concatenate(axis=1)(inputs=[input1, layer_lstm])
             output1 = self._densenet(output1, 100, 100, 100, 125)
@@ -134,7 +133,7 @@ class ModelCl:
             layer_resnet_reshape = tf.keras.layers.Flatten()(layer_resnet)
             output2 = tf.keras.layers.Concatenate(axis=1)(inputs=[input1, layer_lstm, layer_resnet_reshape])
             output2 = self._densenet(output2, 100, 100, 100, 125)
-        model = tf.keras.Model(inputs=[input1, input2, input3], outputs=[output1, output2])
+        model = tf.keras.Model(inputs=[input1, input3], outputs=[output1, output2])
         return model
     def graph(self):
         ''''''
@@ -156,8 +155,7 @@ class ModelCl:
             print('training!')
             for train_data_batch in input(dataset=train_data, batch_size=500):
                 # 此处返回值分别为: loss_all, loss_1, loss_2, acc_1, acc_2, 只需要取loss_all
-                loss_train, _, _, _, _ = model.train_on_batch(x=[train_data_batch[:, :4],
-                                                                 train_data_batch[:, 4:24],
+                loss_train, _, _, _, _ = model.train_on_batch(x=[train_data_batch[:, :24],
                                                                  train_data_batch[:, 24:-125]],
                                                               y=[train_data_batch[:, -125:],
                                                                  train_data_batch[:, -125:]])
@@ -166,8 +164,7 @@ class ModelCl:
                     flag = 1
             if epoch % 100 == 0:
                 #此处返回值分别为: loss_all, loss_1, loss_2, acc_1, acc_2, 只需要取acc_2
-                _, _, _, _, acc2 = model.evaluate(x=[test_data[:, :4],
-                                                     test_data[:, 4:24],
+                _, _, _, _, acc2 = model.evaluate(x=[test_data[:, :24],
                                                      test_data[:, 24:-125]],
                                                   y=[test_data[:, -125:],
                                                      test_data[:, -125:]],

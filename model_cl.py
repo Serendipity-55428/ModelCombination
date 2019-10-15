@@ -140,7 +140,7 @@ class ModelCl:
         # tensorboard = tf.keras.callbacks.TensorBoard(log_dir='logs/model_cl')
         model = self._model_finally()
         optimizer = tf.keras.optimizers.SGD(lr=1e-2)
-        model.compile(optimizer=optimizer, loss=['categorical_crossentropy']*2, loss_weights=[0.3, 0.7],
+        model.compile(optimizer=optimizer, loss=['categorical_crossentropy']*2, loss_weights=[0.2, 0.8],
                       metrics=['accuracy'])
         print('model.metrics_names: ', model.metrics_names)
         # model.fit(callbacks=[tensorboard]) #可视化, 参数必须要输入完整
@@ -164,12 +164,12 @@ class ModelCl:
                     flag = 1
             if epoch % 100 == 0:
                 #此处返回值分别为: loss_all, loss_1, loss_2, acc_1, acc_2, 只需要取acc_2
-                _, _, _, _, acc2 = model.evaluate(x=[test_data[:, :24],
+                _, _, _, acc1, acc2 = model.evaluate(x=[test_data[:, :24],
                                                      test_data[:, 24:-125]],
                                                   y=[test_data[:, -125:],
                                                      test_data[:, -125:]],
                                                   verbose=0)
-                print('测试集准确率为: %s' % acc2)
+                print('测试集准确率为: acc1: %s, acc2: %s' % (acc1, acc2))
             flag = 0
         # model.save(filepath=self.__savepath)
 

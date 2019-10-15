@@ -45,12 +45,12 @@ def dataset_regression_guiyi(dataset, space, number):
             num = number // dataset_sub.shape[0]
             if judge != 0:
                 num += 1
-            dataset_sub2000 = dataset_sub
+            dataset_sub_ = dataset_sub
             for i in range(num-1):
-                dataset_sub2000 = np.vstack((dataset_sub2000, dataset_sub))
-            dataset_sub2000 = dataset_sub2000[:number, :]
-            dataset_return = dataset_sub2000 if dataset_return.any() == 0 else \
-                np.vstack((dataset_return, dataset_sub2000))
+                dataset_sub_ = np.vstack((dataset_sub_, dataset_sub))
+            dataset_sub_ = dataset_sub_[:number, :]
+            dataset_return = dataset_sub_ if dataset_return.any() == 0 else \
+                np.vstack((dataset_return, dataset_sub_))
     return dataset_return
 
 if __name__ == '__main__':
@@ -58,12 +58,12 @@ if __name__ == '__main__':
     # print(space)
     p = '/home/xiaosong/pny相关数据/data_pny/PNY_all.pickle'
     dataset = LoadFile(p)
-    dataset_guiyi_sub = dataset_regression_guiyi(dataset, space, number=2000)
+    dataset_guiyi_sub = dataset_regression_guiyi(dataset, space, number=1000)
     # print(dataset_guiyi_sub.shape)
     dataset_4feature, dataset_dense, label = dataset_guiyi_sub[:, :4], dataset_guiyi_sub[:, 4:-1], \
                                              dataset_guiyi_sub[:, -1][:, np.newaxis]
     dataset_fft = fft_transformer(dataset_dense, 100)
-    dataset = np.hstack((dataset_4feature, dataset_fft, label))
+    dataset = np.hstack((dataset_guiyi_sub[:, :-1], dataset_fft, label))
     dataset_guiyi = guiyi(dataset)
     print(dataset_guiyi.shape)
     SaveFile(data=dataset_guiyi, savepickle_p='/home/xiaosong/桌面/pny_regression_sub.pickle')

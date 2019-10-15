@@ -43,7 +43,7 @@ def R_regression():
     :return: 回归模型
     '''
     with tf.name_scope('input'):
-        input1 = tf.keras.layers.Input(shape=(4, ), name='input1')
+        input1 = tf.keras.layers.Input(shape=(24, ), name='input1')
         input2 = tf.keras.layers.Input(shape=(100,), name='input2')
     with tf.name_scope('cnn'):
         layer = tf.keras.layers.Reshape(target_shape=[10, 10, 1], name='reshape')(input2)
@@ -89,13 +89,13 @@ def graph_re(dataset, save_path):
     flag = 0
     for  epoch in range(10000):
         for train_data_batch in input(dataset=train_data, batch_size=500):
-            loss_train = r_regression.train_on_batch(x=[train_data_batch[:, :4], train_data_batch[:, 4:-1]],
+            loss_train = r_regression.train_on_batch(x=[train_data_batch[:, :24], train_data_batch[:, 24:-1]],
                                                      y=train_data_batch[:, -1])
             if epoch % 100 == 0 and flag == 0:
                 print('第%s轮后训练集损失函数值为: %s' % (epoch, loss_train))
                 flag = 1
         if epoch % 100 == 0:
-            r_predict = r_regression.predict(x=[test_data[:, :4], test_data[:, 4:-1]], verbose=0)
+            r_predict = r_regression.predict(x=[test_data[:, :24], test_data[:, 24:-1]], verbose=0)
             acc1 = acc_regression(Threshold=0.5, y_true=test_data[:, -1][:, np.newaxis], y_pred=r_predict)
             if acc1 > 0.96: break
             print('测试集中T=%s acc=%s' % (0.5, acc1))
@@ -103,17 +103,17 @@ def graph_re(dataset, save_path):
             # acc3 = acc_regression(Threshold=0.1, y_true=test_data[:, -1][:, np.newaxis], y_pred=r_predict)
             # print('T1=%s, acc1=%s  T2=%s, acc2=%s, T3=%s, acc3=%s' % (0.3, acc1, 0.2, acc2, 0.1, acc3))
         flag = 0
-    r_regression.save(save_path)
+    # r_regression.save(save_path)
 
 if __name__ == '__main__':
     path = '/home/xiaosong/桌面/pny_regression_sub.pickle'
     save_path = '/home/xiaosong/桌面/graph_cl_re/graph_re.h5'
     dataset = LoadFile(p=path)
-    # graph_re(dataset=dataset, save_path=save_path)
+    graph_re(dataset=dataset, save_path=save_path)
     #测试模型
-    model = tf.keras.models.load_model(save_path)
-    train_data, test_data = spliting(dataset, 6000)
-    r_predict = model.predict(x=[test_data[:, :4], test_data[:, 4:-1]], verbose=0)
-    acc = acc_regression(Threshold=0.5, y_true=test_data[:, -1][:, np.newaxis], y_pred=r_predict)
-    print('测试集准确率为: %s' % acc)
+    # model = tf.keras.models.load_model(save_path)
+    # train_data, test_data = spliting(dataset, 6000)
+    # r_predict = model.predict(x=[test_data[:, :4], test_data[:, 4:-1]], verbose=0)
+    # acc = acc_regression(Threshold=0.5, y_true=test_data[:, -1][:, np.newaxis], y_pred=r_predict)
+    # print('测试集准确率为: %s' % acc)
     
